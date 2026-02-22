@@ -155,6 +155,30 @@ const joinBtn = document.getElementById("joinBtn");
 joinBtn.onclick = () => {
     main.classList.toggle("active");
 };
+
+document.querySelectorAll(".menu-section button").forEach(btn => {
+    btn.onclick = async () => {
+        const section = btn.parentElement;
+        const name = section.querySelector("h3").textContent;
+        const password = section.querySelector("input").value;
+
+        try {
+            const res = await fetch("https://YOUR-RENDER-BACKEND.onrender.com/validate-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ session_name: name, password })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) alert("Access granted!");
+            else alert(data.message);
+        } catch (err) {
+            alert("Error connecting to server");
+            console.error(err);
+        }
+    };
+});
 </script>
 
 </body>
