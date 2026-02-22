@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #16202e;
+  color: white;
+  margin: 0;
+  padding: 20px;
+}
+h1 { text-align: center; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+th, td {
+  border: 1px solid #ccc;
+  padding: 10px;
+  color: #111;
+  background: #fff;
+  text-align: left;
+}
+th { background: #22c55e; color: white; }
+button {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.delete-btn { background: #ef4444; color: white; }
+.delete-btn:hover { transform: scale(1.05); }
+#goback {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+
+  background: #ffffff;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+
+  transition: all 0.2s ease;
+  z-index: 1000;
+}
+
+#goback:hover {
+  background: #f5f5f5;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+}
+
+#goback:active {
+  transform: translateY(0px);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
+</style>
+</head>
+<body>
+
+<h1>Admin Panel - Sessions</h1>
+<table id="sessionsTable">
+  <thead>
+    <tr>
+      <th>Session Name</th>
+      <th>Section ID</th>
+      <th>Textboxes</th>
+      <th>Priority</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<button id="goback">Go back</button>
+
+<script>
+document.getElementById("goback").addEventListener("click", () => {
+  window.location.href = "index.html";
+});
+
+async function loadSessions() {
+  try {
+    const token = localStorage.getItem("adminToken");
+    if (!token) {
+      alert("Unauthorized");
+      window.location.href = "index.html";
+      return;
+    }
+
+    const res = await fetch("https://remindersbackend.onrender.com/admin-sessions", {
+      headers: { "x-admin-token": token }
+    });
+
+    if (!res.ok) {
+      console.error("Server responded with:", res.status);
+      const text = await res.text();
+      console.error("Response:", text);
+      alert("Failed to load sessions (token may be invalid)");
+      localStorage.removeItem("adminToken");
+      window.location.href = "index.html";
+      return;
+    }
+
+    const data = await res.json();
+
+    if (!data.success || !Array.isArray(data.sessions)) {
+      console.error("Invalid data format:", data);
+      alert("Failed to load sessions");
+      localStorage.removeItem("adminToken");
+      window.location.href = "index.html";
+      return;
+    }
+
+    const tbody = document.querySelector("#sessionsTable tbody");
+    tbody.innerHTML = "";
+
+    data.sessions.forEach(s => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${s.session_name}</td>
+        <td><button class="delete-btn">Delete</button></td>
+      `;
+
+      tr.querySelector(".delete-btn").onclick = async () => {
+        if (!confirm(`Delete session "${s.session_name}"?`)) return;
+
+        const delRes = await fetch(
+          `https://remindersbackend.onrender.com/admin-sessions/${encodeURIComponent(s.session_name)}`,
+          {
+            method: "DELETE",
+            headers: { "x-admin-token": token }
+          }
+        );
+
+        if (!delRes.ok) {
+          const text = await delRes.text();
+          console.error("Delete failed:", delRes.status, text);
+          alert("Failed to delete session");
+          return;
+        }
+
+        loadSessions();
+      };
+
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    console.error("Error loading sessions:", err);
+    alert("An error occurred while loading sessions");
+  }
+}
+
+// Only one DOMContentLoaded listener
+document.addEventListener("DOMContentLoaded", loadSessions);
+</script>
+
+</body>
+</html>

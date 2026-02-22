@@ -11,6 +11,10 @@ body{
   font-family:Arial;
   padding:40px;
   background:#16202e url("./giphy.gif") center/cover no-repeat;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 h1{text-align:center;color:green;margin-bottom:30px}
 .container{display:flex;flex-wrap:wrap;justify-content:center;gap:20px;align-items:flex-start}
@@ -36,6 +40,37 @@ h2{text-align:center;margin-bottom:10px}
 .high{background:#ef4444;color:white}
 .selected{outline:3px solid black}
 h2[contenteditable]{outline:none}
+#goback {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+
+  background: #ffffff;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+
+  transition: all 0.2s ease;
+  z-index: 1000;
+}
+
+#goback:hover {
+  background: #f5f5f5;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+}
+
+#goback:active {
+  transform: translateY(0px);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
 </style>
 </head>
 
@@ -43,12 +78,23 @@ h2[contenteditable]{outline:none}
 
 <h1>Priority Sections</h1>
 <div class="container" id="container"></div>
+<button id="goback">Go back</button>
 
 <script>
-const sessionName = localStorage.getItem("session_name");
-if(!sessionName) window.location.href="index.html";
-
 const container=document.getElementById("container");
+
+document.getElementById("goback").addEventListener("click", () => {
+  window.location.href = "index.html";
+});
+
+
+/* ---------- TOKEN ---------- */
+
+const token = localStorage.getItem("session_token");
+
+if (!token) {
+  window.location.href = "index.html";
+}
 
 /* ---------- Helpers ---------- */
 
@@ -81,8 +127,8 @@ function createSection(data={}){
   section.className="section";
 
   const title = document.createElement("h2");
-title.textContent = data.name || `Section ${i+1}`;
-title.contentEditable = "true"; // allow editing
+  title.textContent = data.name || `Section`;
+  title.contentEditable = "true";
   title.addEventListener("keydown",e=>{
     if(e.key==="Enter"){e.preventDefault();title.blur();}
   });
@@ -121,35 +167,28 @@ title.contentEditable = "true"; // allow editing
   section.append(title,textboxGroup,addBtn,buttonsDiv);
   container.appendChild(section);
 
-  /* ---- Load Data If Exists ---- */
-    let texts = [];
+  let texts = [];
 
-    // Ensure data.textboxes exists
-    if (data && data.textboxes) {
-    // If already an array, use it; if string (from DB), parse it
+  if (data && data.textboxes) {
     if (Array.isArray(data.textboxes)) {
-        texts = data.textboxes;
+      texts = data.textboxes;
     } else if (typeof data.textboxes === "string") {
-        try {
+      try {
         texts = JSON.parse(data.textboxes);
-        } catch (e) {
-        console.warn("Failed to parse textboxes:", data.textboxes);
+      } catch {
         texts = [];
-        }
+      }
     }
-    }
+  }
 
-    // If empty, start with a single blank textbox
-    if (!texts || texts.length === 0) texts = [""];
+  if (!texts || texts.length === 0) texts = [""];
 
-    // Populate textboxes
-    texts.forEach(t => createTextbox(section, t));
+  texts.forEach(t => createTextbox(section, t));
 
-    // Set priority if exists
-    if (data && data.priority) {
+  if (data && data.priority) {
     const btn = section.querySelector(`[data-priority="${data.priority}"]`);
-    if (btn) btn.click(); // activates styles properly
-    }
+    if (btn) btn.click();
+  }
 }
 
 /* ---------- Save ---------- */
@@ -157,29 +196,25 @@ title.contentEditable = "true"; // allow editing
 function gatherSectionData() {
   return [...document.querySelectorAll(".section")].map((sec, i) => ({
     id: i + 1,
-    name: sec.querySelector("h2")?.textContent || `Section ${i + 1}`, // <-- save title
+    name: sec.querySelector("h2")?.textContent || `Section ${i + 1}`,
     textboxes: [...sec.querySelectorAll(".textbox-group input")].map(input => input.value),
     priority: sec.querySelector(".btn.selected")?.dataset.priority || null
   }));
 }
 
 async function saveSections() {
+    console.log(gatherSectionData())
   try {
-    const payload = {
-      session_name: sessionName,
-      sections: Array.isArray(gatherSectionData())
-        ? gatherSectionData()
-        : []
-    };
-
-    console.log("Sending:", payload);
-
     await fetch("https://remindersbackend.onrender.com/save-sections", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      headers: {
+        "Content-Type": "application/json",
+        "x-session-token": token
+      },
+      body: JSON.stringify({
+        sections: gatherSectionData()
+      })
     });
-
   } catch (err) {
     console.error("Save failed", err);
   }
@@ -189,40 +224,49 @@ async function saveSections() {
 
 async function loadSections() {
   try {
-    const res = await fetch(`https://remindersbackend.onrender.com/get-sections/${sessionName}`);
+    const res = await fetch(
+      "https://remindersbackend.onrender.com/get-sections",
+      {
+        headers: {
+          "x-session-token": token
+        }
+      }
+    );
+
     const data = await res.json();
 
-    container.innerHTML = ""; // clear existing sections
+    container.innerHTML = "";
 
     if (data.success && Array.isArray(data.sections) && data.sections.length) {
-      console.log("Loaded sections:", data.sections);
 
       data.sections.forEach(sec => {
-        // Safely parse textboxes
+
         let textboxes = [];
         if (sec.textboxes) {
           try {
             textboxes = Array.isArray(sec.textboxes)
               ? sec.textboxes
               : JSON.parse(sec.textboxes);
-          } catch (e) {
-            console.warn("Failed to parse textboxes for section", sec, e);
+          } catch {
             textboxes = [];
           }
         }
 
-        if (textboxes.length === 0) textboxes = [""]; // at least one textbox
+        if (textboxes.length === 0) textboxes = [""];
 
         createSection({
-          name: sec.name || `Section ${sec.section_id || "?"}`,
+          name: sec.name || "Section",
           textboxes,
           priority: sec.priority
         });
       });
+
     } else {
-      // If no data, create 6 default sections
-      for (let i = 1; i <= 6; i++) createSection({ name: `Section ${i}` });
+      for (let i = 1; i <= 6; i++) {
+        createSection({ name: `Section ${i}` });
+      }
     }
+
   } catch (err) {
     console.error("Load failed", err);
   }
