@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Priority Sections</title>
+
+<style>
+    * {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+
+body {
+    font-family: Arial, sans-serif;
+    background: #16202e;
+    margin: 0;
+    padding: 40px;
+
+    background-image: url("./giphy.gif");
+    background-size: cover;        /* fills screen */
+    background-position: center;   /* keeps it centered */
+    background-repeat: no-repeat;  /* prevents tiling */
+}
+
+h1 {
+    color: green;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+/* ---------- Layout ---------- */
+
+.container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    transition: gap 0.25s ease;
+    align-items: flex-start;
+
+}
+
+.container.has-active {
+    gap: 35px;
+}
+
+.section {
+    width: 260px;
+    padding: 15px;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform-origin: center;
+    transition: transform 0.25s ease, background 0.3s ease;
+}
+
+.section h2 {
+    text-align: center;
+    margin: 0 0 10px 0;
+}
+
+/* ---------- Textboxes ---------- */
+
+.textbox-group input {
+    width: 100%;
+    padding: 6px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 13px;
+}
+
+.textbox-wrapper {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 6px;
+}
+
+.textbox-wrapper input {
+    flex: 1;
+}
+
+/* ---------- Add + Delete Buttons ---------- */
+
+.add-btn,
+.delete-btn {
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s ease;
+}
+
+.add-btn {
+    width: 100%;
+    padding: 6px;
+    margin-bottom: 8px;
+    background: #22c55e;
+    color: white;
+}
+
+.add-btn:hover {
+    transform: scale(1.05);
+}
+
+.delete-btn {
+    width: 30px;
+    height: 25px;
+    background: #ef4444;
+    color: white;
+}
+
+.delete-btn:hover {
+    transform: scale(1.1);
+}
+
+/* ---------- Priority Buttons ---------- */
+
+.buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.btn {
+    flex: 1;
+    padding: 6px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: transform 0.2s ease;
+}
+
+.low { background: #d1d5db; }
+.medium { background: #60a5fa; color: white; }
+.high { background: #ef4444; color: white; }
+
+.low:hover { transform: scale(1.05); }
+.medium:hover { transform: scale(1.12); }
+.high:hover { transform: scale(1.2); }
+
+.selected {
+    outline: 3px solid black;
+}
+
+/* ---------- Section Scaling ---------- */
+
+.section.medium-active {
+    transform: scale(1.07);
+}
+
+.section.high-active {
+    transform: scale(1.12);
+}
+</style>
+</head>
+<body>
+
+<h1>Priority Sections</h1>
+<div class="container" id="container"></div>
+
+<script>
+    const container = document.getElementById("container");
+
+   function createTextbox(section) {
+    const textboxGroup = section.querySelector(".textbox-group");
+
+    // Wrapper for input + delete button
+    const wrapper = document.createElement("div");
+    wrapper.className = "textbox-wrapper";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "Enter text...";
+
+    // Delete button
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "✖";
+    deleteBtn.className = "delete-btn";
+
+    deleteBtn.onclick = () => {
+        wrapper.remove();
+    };
+
+    wrapper.appendChild(input);
+    wrapper.appendChild(deleteBtn);
+    textboxGroup.appendChild(wrapper);
+}
+
+    
+
+    function adjustSpacing() {
+
+    const sections = document.querySelectorAll(".section");
+
+    let highestPriority = 0;
+    // 0 = none
+    // 1 = low
+    // 2 = medium
+    // 3 = high
+
+    sections.forEach(section => {
+        if (section.classList.contains("high-active")) {
+            highestPriority = Math.max(highestPriority, 3);
+        } else if (section.classList.contains("medium-active")) {
+            highestPriority = Math.max(highestPriority, 2);
+        } else if (section.classList.contains("low-active")) {
+            highestPriority = Math.max(highestPriority, 1);
+        }
+    });
+
+    // Adjust gap based on highest active
+    switch (highestPriority) {
+        case 3:
+            container.style.gap = "40px";
+            break;
+        case 2:
+            container.style.gap = "30px";
+            break;
+        case 1:
+            container.style.gap = "24px";
+            break;
+        default:
+            container.style.gap = "20px";
+    }
+}
+
+    function createSection(number) {
+        const section = document.createElement("div");
+        section.className = "section";
+
+        const title = document.createElement("h2");
+        title.textContent = "Section " + number;
+
+        const textboxGroup = document.createElement("div");
+        textboxGroup.className = "textbox-group";
+
+        const addBtn = document.createElement("button");
+        addBtn.className = "add-btn";
+        addBtn.textContent = "+ Add";
+
+        addBtn.onclick = () => createTextbox(section);
+
+        const buttonsDiv = document.createElement("div");
+        buttonsDiv.className = "buttons";
+
+        const priorities = ["low", "medium", "high"];
+
+        priorities.forEach(level => {
+            const btn = document.createElement("button");
+            btn.className = "btn " + level;
+            btn.textContent = level.charAt(0).toUpperCase() + level.slice(1);
+
+            btn.onclick = () => {
+
+    // Remove selected state from buttons
+    buttonsDiv.querySelectorAll(".btn").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+
+    container.classList.add("has-active");
+
+    // Remove previous size classes
+    section.classList.remove("low-active", "medium-active", "high-active");
+
+    // Add new size class
+    section.classList.add(level + "-active");
+
+    // Change background color
+    const styles = window.getComputedStyle(btn);
+    section.style.background = styles.backgroundColor;
+    adjustSpacing();
+};
+
+            buttonsDiv.appendChild(btn);
+        });
+
+        section.appendChild(title);
+        section.appendChild(textboxGroup);
+        section.appendChild(addBtn);
+        section.appendChild(buttonsDiv);
+
+        container.appendChild(section);
+
+        // Start with one textbox
+        createTextbox(section);
+    }
+
+    // Create 6 sections
+    for (let i = 1; i <= 6; i++) {
+        createSection(i);
+    }
+
+    function gatherSectionData() {
+    const sessionName = "John Doe"; // or get dynamically from login/session
+    const sections = [];
+
+    document.querySelectorAll(".section").forEach((sec, idx) => {
+        const textboxes = Array.from(sec.querySelectorAll("input[type=text]")).map(input => input.value);
+        const priorityBtn = sec.querySelector(".btn.selected");
+        const priority = priorityBtn ? priorityBtn.dataset.priority : null;
+
+        sections.push({
+            id: idx + 1,
+            textboxes,
+            priority
+        });
+    });
+
+    return { session_name: sessionName, sections };
+}
+
+async function saveSections() {
+    try {
+        const data = gatherSectionData();
+        await fetch("https://remindersbackend.onrender.com/save-sections", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+        console.log("Sections saved");
+    } catch (err) {
+        console.error("Failed to save sections", err);
+    }
+}
+
+// Auto-save every 15 seconds
+setInterval(saveSections, 15000);
+
+// Save on tab close
+window.addEventListener("beforeunload", saveSections);
+</script>
+
+</body>
+</html>
