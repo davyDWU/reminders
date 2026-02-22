@@ -163,7 +163,7 @@ document.querySelectorAll(".menu-section button").forEach(btn => {
         const password = section.querySelector("input").value;
 
         try {
-            const res = await fetch("https://YOUR-RENDER-BACKEND.onrender.com/validate-password", {
+            const res = await fetch("https://remindersbackend.onrender.com/validate-password", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ session_name: name, password })
