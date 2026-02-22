@@ -157,6 +157,7 @@ joinBtn.onclick = () => {
 };
 
 document.querySelectorAll(".menu-section button").forEach(btn => {
+    console.log('here')
     btn.onclick = async () => {
         const section = btn.parentElement;
         const name = section.querySelector("h3").textContent;
